@@ -1,0 +1,47 @@
+version: '3.5'
+
+services:  
+  jupyter_notebook:
+    image: python:3.10 
+    container_name: jupyter_notebook
+    links:
+      - weaviate
+    network_mode: bridge
+    ports:
+      - "8888:8888"  
+    volumes:
+      - ./notebook:/home/jovyan/work  
+    command: >
+      bash -c "
+      pip install notebook ipykernel &&
+      python -m ipykernel install --user --name=myenv --display-name='Python 3.10 (myenv)' &&
+      jupyter notebook --NotebookApp.token='' --NotebookApp.password='' --ip=0.0.0.0 --allow-root --no-browser"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:1.23.1
+    network_mode: bridge
+    ports:
+    - 8081:8080
+    - 50051:50051
+    container_name: weaviate
+    volumes:
+    - ./weaviate_data:/var/lib/weaviate
+    # restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      # AUTOSCHEMA_ENABLED: 'false'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+
